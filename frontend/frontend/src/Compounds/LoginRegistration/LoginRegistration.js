@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import './LoginRegistration.css';
 import axios from 'axios';
+import {useNavigate} from "react-router-dom";
 
 const LoginRegistration = () => {
   const [action, setAction] = useState("Login");
+  let history=useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,10 +18,11 @@ const LoginRegistration = () => {
     event.preventDefault();
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}${action === "Login" ? "login" : "signUp"}`, formData);
+      history("/home");
       console.log(response.data);
     } catch (error) {
       if (error.response) {
-        setError(error.response.data);
+        setError(error.response.data.message);
       } else {
         setError('Failed to connect to the server.');
       }
@@ -33,6 +36,7 @@ const LoginRegistration = () => {
   const toggleAction = () => {
     setAction(action === "Login" ? "Registration" : "Login");
   };
+
   return (
     <div className='background-container'>
       <div className='container'>
@@ -111,4 +115,5 @@ const LoginRegistration = () => {
     </div>
   );
 };
+
 export default LoginRegistration;

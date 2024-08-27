@@ -13,6 +13,7 @@ const Predict = () => {
     const selectedFile = event.target.files[0];
     setFile(selectedFile);
     setPrediction('');
+    setResultImageUrl('');
     setError('');
 
     if (selectedFile) {
@@ -23,7 +24,7 @@ const Predict = () => {
     }
   };
 
-  const handleSubmitDL = async (event) => {
+  const handleSubmitDLClassification = async (event) => {
     event.preventDefault();
     const formData = new FormData();
     formData.append('image', file);
@@ -35,13 +36,35 @@ const Predict = () => {
         },
       });
       setPrediction(response.data.prediction);
+      setResultImageUrl('');
     } catch (error) {
       console.error('Error uploading the file:', error);
       setError('Error uploading the file');
     }
   };
 
-  const handleSubmitLLM = async (event) => {
+  const handleSubmitDLSegmentation = async (event) => {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await axios.post('http://localhost:5002/predict', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        responseType: 'blob', 
+      });
+      const resultImageUrl = URL.createObjectURL(response.data);
+      setResultImageUrl(resultImageUrl);
+      setPrediction(''); 
+    } catch (error) {
+      console.error('Error uploading the file:', error);
+      setError('Error uploading the file');
+    }
+  };
+
+  const handleSubmitLLMSegmentation = async (event) => {
     event.preventDefault();
     const formData = new FormData();
     formData.append('image', file);
@@ -51,10 +74,30 @@ const Predict = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        responseType: 'blob', // Set the response type to blob to handle binary data
+        responseType: 'blob', 
       });
       const resultImageUrl = URL.createObjectURL(response.data);
       setResultImageUrl(resultImageUrl);
+      setPrediction(''); 
+    } catch (error) {
+      console.error('Error uploading the file:', error);
+      setError('Error uploading the file');
+    }
+  };
+
+  const handleSubmitLLMClassification = async (event) => {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await axios.post('http://localhost:5003/predict', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setPrediction(response.data.prediction);
+      setResultImageUrl(''); 
     } catch (error) {
       console.error('Error uploading the file:', error);
       setError('Error uploading the file');
@@ -62,27 +105,37 @@ const Predict = () => {
   };
 
   return (
-    <div>
-      <h1>Upload an image to classify</h1>
+    <div className="App">
+      <h1>Upload an image to classify or segment</h1>
 
-      <form onSubmit={handleSubmitDL}>
-        <input className='input' type="file" onChange={handleFileChange} />
-        {imageUrl && (
-          <div>
-            <img src={imageUrl} alt="Uploaded" className="uploaded-image" />
-          </div>
-        )}
-        <button className='button' type="submit">Predict with DL</button>
+      <form onSubmit={handleSubmitDLClassification}>
+        <div className="input-container">
+          <input className='input' type="file" onChange={handleFileChange} />
+          {imageUrl && (
+            <div>
+              <img src={imageUrl} alt="Uploaded" className="uploaded-image" />
+            </div>
+          )}
+        </div>
+        <button className='button' type="submit">DL classification</button>
       </form>
 
-      <form onSubmit={handleSubmitLLM}>
-        <button className='button' type="submit">Predict with LLM</button>
+      <form onSubmit={handleSubmitDLSegmentation}>
+        <button className='button' type="submit">DL segmentation</button>
+      </form>
+
+      <form onSubmit={handleSubmitLLMSegmentation}>
+        <button className='button' type="submit">LLM segmentation</button>
+      </form>
+
+      <form onSubmit={handleSubmitLLMClassification}>
+        <button className='button' type="submit">LLM classification</button>
       </form>
 
       {resultImageUrl && (
-        <div>
-          <h2>Prediction Result:</h2>
-          <img src={resultImageUrl} alt="Prediction Result" className="result-image" />
+        <div className="result-container">
+          <h2>Segmentation Result:</h2>
+          <img src={resultImageUrl} alt="Segmentation Result" className="result-image" />
         </div>
       )}
 
