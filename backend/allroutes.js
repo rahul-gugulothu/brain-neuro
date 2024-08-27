@@ -1,5 +1,5 @@
 const express = require("express");
-const { usersModel } = require("./allschemas");
+const usersModel = require("./userModel");
 const allroutes = express.Router();
 const multer = require("multer");
 const upload = multer();
@@ -24,50 +24,65 @@ allroutes.get('/', (req, res) => {
     res.send("Welcome to our page");
 });
 
-allroutes.post('/signUp', upload.none(), async (req, res) => {
+allroutes.post('/signUp', async (req, res) => {
     try {
-        const existingUser = await usersModel.findOne({ username: req.body.name });
+        const { name, email, password } = req.body;
+        console.log('Received sign-up data:', req.body);
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: "All fields (name, email, password) are required" });
+        }
+
+        const existingUser = await usersModel.findOne({ email });
         if (existingUser) {
-            return res.status(400).send("Username already exists");
+            return res.status(400).send({ error: "Email already exists" });
         }
 
         const newUser = new usersModel({
-            username: req.body.name,
-            email: req.body.email,
-            password: req.body.password
+            username: name,
+            email,
+            password
         });
 
         await newUser.save();
-        res.send(newUser);
+        res.status(201).json(newUser);
     } catch (err) {
         console.error("Error while adding user:", err);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send({ error: "Internal Server Error" });
     }
 });
 
 allroutes.post('/login', upload.none(), async (req, res) => {
     try {
-        const user = await usersModel.findOne({ email: req.body.email });
-        if (user) {
-            if (user.password === req.body.password) {
-                res.send(user);
-                console.log("Login successful");
-            } else {
-                res.status(401).send("Invalid credentials");
-            }
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).send({ error: "Email and password are required" });
+        }
+
+        const user = await usersModel.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        if (user.password === password) {
+            res.send(user);
+            console.log("Login successful");
         } else {
-            res.status(401).send("Invalid credentials");
+            res.status(401).send({ error: "Invalid credentials" });
         }
     } catch (err) {
-        console.log(err);
-        res.status(500).send(err);
+        console.error("Error during login:", err);
+        res.status(500).send({ error: "Internal Server Error" });
     }
 });
 
 allroutes.post('/send-otp', upload.none(), async (req, res) => {
     const { email } = req.body;
+
     if (!email) {
-        return res.status(400).json({ error: 'Email address is required' });
+        return res.status(400).send({ error: 'Email address is required' });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
@@ -86,15 +101,21 @@ allroutes.post('/send-otp', upload.none(), async (req, res) => {
         res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error) {
         console.error('Error sending email:', error.message);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
 allroutes.post('/verify-otp', upload.none(), (req, res) => {
     const { email, userEnteredOtp } = req.body;
+
+    if (!email || !userEnteredOtp) {
+        return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
     const storedOtp = otpStorage.get(email);
 
     if (storedOtp && storedOtp.toString() === userEnteredOtp) {
+        otpStorage.delete(email); // Optionally, clear the OTP after successful verification
         res.status(200).json({ message: 'OTP verified successfully' });
     } else {
         res.status(400).json({ error: 'Invalid OTP' });

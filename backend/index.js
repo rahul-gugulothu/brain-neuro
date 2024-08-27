@@ -1,27 +1,21 @@
 const express = require('express');
 const app = express();
-const allroutes = require('./allroutes');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require("dotenv");
-const { usersModel } = require("../backend/allschemas");
-
+const allroutes = require('./allroutes');
 dotenv.config();
 app.use(express.json());
-
-let corspolicy = {
-    origin: "http://localhost:3000"
-};
-app.use(cors(corspolicy));
+app.use(cors({ origin: "http://localhost:3000" }));
 
 app.use((req, res, next) => {
     console.log("Request received at " + (new Date())); 
     next();
 });
 
-let db = async () => { 
+const db = async () => { 
     try { 
-        await mongoose.connect(process.env.MONGO_URI, {
+        await mongoose.connect(process.env.DBURI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
@@ -32,25 +26,9 @@ let db = async () => {
 };
 db();
 
-let userSchema = new mongoose.Schema({
-    "username": {
-        "type": "String",
-        "required": true
-    },
-    "password": {
-        "type": "String",
-        "required": true
-    },
-    "email": {
-        "type": "String",
-        "required": true,
-        "unique": true
-    },
-});
-mongoose.model("usersModel", userSchema);
-
+// Use routes
 app.use('/', allroutes);
-
+// app.use('/',k);
 const PORT = process.env.PORT || 3100;
 app.listen(PORT, () => {
     console.log(`Backend server listening at port ${PORT}`);
